@@ -1,0 +1,86 @@
+name: Full SDLC Workflow
+description: Complete end-to-end feature development from PRD to deployment
+
+phases:
+  - product
+  - architecture
+  - implementation
+  - testing
+  - review
+  - deployment
+
+agents:
+  product:
+    - product-manager
+    - ux-researcher
+    - business-analyst
+    execution: sequential
+
+  architecture:
+    - solutions-architect
+    - database-architect
+    - security-architect
+    execution: sequential
+
+  implementation:
+    - database-engineer
+    - backend-engineer
+    - frontend-engineer
+    execution: parallel
+    max_parallel: 3
+
+  testing:
+    - qa-engineer
+    - e2e-test-engineer
+    - db-test-engineer
+    execution: parallel
+    max_parallel: 3
+
+  review:
+    - security-engineer
+    - code-reviewer
+    - performance-engineer
+    execution: parallel
+    max_parallel: 3
+
+  deployment:
+    - technical-writer
+    - devops-engineer
+    execution: sequential
+
+quality_gates:
+  required: true
+  fail_on_critical: true
+
+  gates:
+    - name: PRD Completeness
+      phase: product
+      type: document_validation
+
+    - name: Architecture Review
+      phase: architecture
+      type: peer_review
+
+    - name: Code Compiles
+      phase: implementation
+      type: build
+
+    - name: Tests Pass
+      phase: testing
+      type: test_execution
+
+    - name: Security Audit
+      phase: review
+      type: security_scan
+      fail_on_high: true
+
+    - name: Performance Check
+      phase: review
+      type: performance_analysis
+      max_bundle_size_increase: 100kb
+
+automation:
+  auto_commit: false
+  auto_pr: false
+  auto_test: true
+  auto_security_scan: true

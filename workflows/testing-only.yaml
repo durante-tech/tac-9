@@ -1,0 +1,25 @@
+name: Testing Only Workflow
+description: Add tests to existing features
+
+phases:
+  - testing
+
+agents:
+  testing:
+    - qa-engineer
+    - e2e-test-engineer
+    - db-test-engineer
+    execution: sequential
+
+quality_gates:
+  required: true
+
+  gates:
+    - name: Test Coverage
+      phase: testing
+      type: coverage
+      min_coverage: 80
+
+    - name: Tests Pass
+      phase: testing
+      type: test_execution

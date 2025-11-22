@@ -1,0 +1,39 @@
+name: Implementation Only Workflow
+description: Skip planning phases, go straight to implementation
+
+phases:
+  - implementation
+  - testing
+  - review
+
+agents:
+  implementation:
+    - database-engineer
+    - backend-engineer
+    - frontend-engineer
+    execution: parallel
+    max_parallel: 3
+
+  testing:
+    - e2e-test-engineer
+    - db-test-engineer
+    execution: parallel
+    max_parallel: 2
+
+  review:
+    - code-reviewer
+    - security-engineer
+    execution: parallel
+    max_parallel: 2
+
+quality_gates:
+  required: true
+
+  gates:
+    - name: Tests Pass
+      phase: testing
+      type: test_execution
+
+    - name: Security Check
+      phase: review
+      type: security_scan

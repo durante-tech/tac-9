@@ -1,0 +1,74 @@
+'use server';
+
+import { enhanceAction } from '@kit/next/actions';
+import { getSupabaseServerClient } from '@kit/supabase/server-client';
+import { {{ schema_name }} } from '../schemas/{{ feature_name }}.schema';
+import { create{{ service_name }}Service } from './service';
+
+/**
+ * Create a new {{ resource_name }}
+ */
+export const create{{ resource_name }} = enhanceAction(
+  async (data) => {
+    const client = getSupabaseServerClient();
+    const service = create{{ service_name }}Service(client);
+
+    const response = await service.create(data);
+
+    if (response.error) {
+      throw response.error;
+    }
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  },
+  {
+    schema: {{ schema_name }},
+  },
+);
+
+/**
+ * Update an existing {{ resource_name }}
+ */
+export const update{{ resource_name }} = enhanceAction(
+  async ({ id, ...data }) => {
+    const client = getSupabaseServerClient();
+    const service = create{{ service_name }}Service(client);
+
+    const response = await service.update(id, data);
+
+    if (response.error) {
+      throw response.error;
+    }
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  },
+  {
+    schema: {{ schema_name }},
+  },
+);
+
+/**
+ * Delete a {{ resource_name }}
+ */
+export const delete{{ resource_name }} = enhanceAction(
+  async ({ id }) => {
+    const client = getSupabaseServerClient();
+    const service = create{{ service_name }}Service(client);
+
+    const response = await service.delete(id);
+
+    if (response.error) {
+      throw response.error;
+    }
+
+    return {
+      success: true,
+    };
+  },
+);

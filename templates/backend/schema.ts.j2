@@ -1,0 +1,21 @@
+import { z } from 'zod';
+
+/**
+ * Schema for creating a {{ resource_name }}
+ */
+export const {{ schema_name }} = z.object({
+  {% for field in fields %}
+  {{ field.name }}: z.{{ field.type }}(){% if field.required %}.min(1){% endif %}{% if field.description %}.describe('{{ field.description }}'){% endif %},
+  {% endfor %}
+});
+
+export type {{ type_name }} = z.infer<typeof {{ schema_name }}>;
+
+/**
+ * Schema for updating a {{ resource_name }}
+ */
+export const Update{{ schema_name }} = {{ schema_name }}.partial().extend({
+  id: z.string().uuid(),
+});
+
+export type Update{{ type_name }} = z.infer<typeof Update{{ schema_name }}>;

@@ -1,0 +1,26 @@
+import { Card, CardContent, CardHeader, CardTitle } from '@kit/ui/card';
+
+interface {{ component_name }}Props {
+  data: {{ type_name }};
+}
+
+export function {{ component_name }}({ data }: {{ component_name }}Props) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{{ title }}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {/* Component content */}
+        <div className="space-y-4">
+          {% for field in fields %}
+          <div>
+            <span className="text-sm font-medium">{{ field.label }}:</span>
+            <span className="ml-2">{data.{{ field.name }}}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

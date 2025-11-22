@@ -1,0 +1,35 @@
+import { test, expect } from '@playwright/test';
+
+test.describe('{{ feature_name }}', () => {
+  test.beforeEach(async ({ page }) => {
+    // Login and navigate
+    await page.goto('/auth/sign-in');
+    // TODO: Add auth flow
+  });
+
+  test('should create a new {{ resource_name }}', async ({ page }) => {
+    await page.goto('/home/[account]/{{ route }}');
+
+    // Click create button
+    await page.click('[data-test="create-{{ resource_name }}-button"]');
+
+    // Fill form
+    {% for field in fields %}
+    await page.fill('[data-test="{{ field.name }}-input"]', '{{ field.test_value }}');
+    {% endfor %}
+
+    // Submit
+    await page.click('[data-test="submit-button"]');
+
+    // Verify success
+    await expect(page.locator('[data-test="{{ resource_name }}-list"]')).toContainText('{{ test_value }}');
+  });
+
+  test('should update an existing {{ resource_name }}', async ({ page }) => {
+    // TODO: Implement update test
+  });
+
+  test('should delete a {{ resource_name }}', async ({ page }) => {
+    // TODO: Implement delete test
+  });
+});

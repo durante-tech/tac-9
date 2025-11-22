@@ -1,0 +1,77 @@
+-- Migration: {{ feature_name }}
+-- Created: {{ timestamp }}
+-- Description: {{ description }}
+
+-- Create table
+CREATE TABLE IF NOT EXISTS public.{{ table_name }} (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
+  {% for column in columns %}
+  {{ column.name }} {{ column.type }}{% if column.not_null %} NOT NULL{% endif %}{% if column.default %} DEFAULT {{ column.default }}{% endif %},
+  {% endfor %}
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES auth.users(id),
+  updated_by UUID REFERENCES auth.users(id)
+);
+
+-- Create indexes
+{% for index in indexes %}
+CREATE INDEX IF NOT EXISTS idx_{{ table_name }}_{{ index.name }}
+  ON public.{{ table_name }}({{ index.columns | join(', ') }});
+{% endfor %}
+
+-- Enable Row Level Security
+ALTER TABLE public.{{ table_name }} ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Users can read their account's {{ resource_name }}"
+  ON public.{{ table_name }}
+  FOR SELECT
+  USING (
+    account_id IN (
+      SELECT account_id FROM accounts_memberships
+      WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can insert {{ resource_name }} for their accounts"
+  ON public.{{ table_name }}
+  FOR INSERT
+  WITH CHECK (
+    account_id IN (
+      SELECT account_id FROM accounts_memberships
+      WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can update {{ resource_name }} for their accounts"
+  ON public.{{ table_name }}
+  FOR UPDATE
+  USING (
+    account_id IN (
+      SELECT account_id FROM accounts_memberships
+      WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can delete {{ resource_name }} for their accounts"
+  ON public.{{ table_name }}
+  FOR DELETE
+  USING (
+    account_id IN (
+      SELECT account_id FROM accounts_memberships
+      WHERE user_id = auth.uid()
+    )
+  );
+
+-- Triggers
+CREATE TRIGGER set_updated_at
+  BEFORE UPDATE ON public.{{ table_name }}
+  FOR EACH ROW
+  EXECUTE FUNCTION public.set_current_timestamp_updated_at();
+
+CREATE TRIGGER set_updated_by
+  BEFORE UPDATE ON public.{{ table_name }}
+  FOR EACH ROW
+  EXECUTE FUNCTION public.set_current_user_updated_by();
