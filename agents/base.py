@@ -5,7 +5,7 @@ Base Agent - Foundation for all specialist agents
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -16,18 +16,18 @@ class AgentInput(BaseModel):
     """Input data for an agent"""
 
     workspace_context: WorkspaceContext
-    previous_deliverables: List[Deliverable] = []
-    metadata: Dict[str, Any] = {}
+    previous_deliverables: list[Deliverable] = []
+    metadata: dict[str, Any] = {}
 
 
 class AgentOutput(BaseModel):
     """Output data from an agent"""
 
-    deliverables: List[Deliverable] = []
-    quality_gates: List[QualityGate] = []
-    metadata: Dict[str, Any] = {}
+    deliverables: list[Deliverable] = []
+    quality_gates: list[QualityGate] = []
+    metadata: dict[str, Any] = {}
     success: bool = True
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class BaseAgent(ABC):
@@ -78,7 +78,7 @@ class BaseAgent(ABC):
         pass
 
     def get_user_prompt(
-        self, workspace_context: WorkspaceContext, previous_deliverables: List[Deliverable]
+        self, workspace_context: WorkspaceContext, previous_deliverables: list[Deliverable]
     ) -> str:
         """
         Get the user prompt for this agent (can be overridden).
@@ -102,13 +102,34 @@ Target Project: {workspace_context.project_path}
 Please produce your deliverables according to your role and expertise.
 """
 
+    async def call_llm(self, system_prompt: str, user_prompt: str) -> str:
+        """
+        Call the LLM with the given prompts.
+
+        Args:
+            system_prompt: System prompt
+            user_prompt: User prompt
+
+        Returns:
+            LLM response text
+        """
+        # Import here to avoid circular dependency
+        from orchestrator.services.llm_service import llm_service
+
+        return await llm_service.call(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            model=self.model,
+            temperature=self.temperature,
+        )
+
     def create_deliverable(
         self,
         name: str,
         deliverable_type: str,
         path: Path,
-        content: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        content: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Deliverable:
         """Helper to create a deliverable"""
         return Deliverable(
@@ -126,7 +147,7 @@ Please produce your deliverables according to your role and expertise.
         name: str,
         passed: bool,
         message: str,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> QualityGate:
         """Helper to create a quality gate"""
         return QualityGate(
@@ -135,21 +156,6 @@ Please produce your deliverables according to your role and expertise.
             message=message,
             details=details or {},
         )
-
-    async def call_llm(self, system_prompt: str, user_prompt: str) -> str:
-        """
-        Call the LLM with the given prompts.
-
-        Args:
-            system_prompt: System prompt
-            user_prompt: User prompt
-
-        Returns:
-            LLM response text
-        """
-        # TODO: Implement LLM call based on self.model
-        # For now, return a placeholder
-        return f"[Placeholder response from {self.model}]"
 
     def save_file(self, path: Path, content: str) -> None:
         """Save content to a file"""

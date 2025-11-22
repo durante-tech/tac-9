@@ -8,6 +8,7 @@ from datetime import datetime
 
 from rich.console import Console
 
+from agents.base import AgentInput
 from orchestrator.core.config import settings
 from orchestrator.core.models import (
     AgentRole,
@@ -19,6 +20,7 @@ from orchestrator.core.models import (
     WorkflowMode,
     WorkspaceContext,
 )
+from orchestrator.services.agent_registry import agent_registry
 
 console = Console()
 
@@ -123,7 +125,6 @@ class SDLCOrchestrator:
             raise ValueError(f"PRD not found: {prd_path}")
 
         console.print(f"[green]✓[/green] Loading PRD from: {prd_path}")
-        # TODO: Load and parse PRD
 
         # Execute remaining phases
         phases = [
@@ -181,9 +182,7 @@ class SDLCOrchestrator:
             console.print(f"[cyan]⚙️  Running {len(tasks)} agents sequentially...[/cyan]")
             await self._run_agents_sequential(execution, tasks)
 
-    async def _run_agents_parallel(
-        self, execution: WorkflowExecution, tasks: list[AgentTask]
-    ) -> None:
+    async def _run_agents_parallel(self, execution: WorkflowExecution, tasks: list[AgentTask]) -> None:
         """Run multiple agents in parallel with concurrency limit"""
         semaphore = asyncio.Semaphore(self.settings.max_parallel_agents)
 
@@ -193,9 +192,7 @@ class SDLCOrchestrator:
 
         await asyncio.gather(*[run_with_semaphore(task) for task in tasks])
 
-    async def _run_agents_sequential(
-        self, execution: WorkflowExecution, tasks: list[AgentTask]
-    ) -> None:
+    async def _run_agents_sequential(self, execution: WorkflowExecution, tasks: list[AgentTask]) -> None:
         """Run agents sequentially (one after another)"""
         for task in tasks:
             await self._run_agent(execution, task)
@@ -210,15 +207,38 @@ class SDLCOrchestrator:
         execution.add_task(task)
 
         try:
-            # TODO: Load agent and execute
-            # For now, simulate agent execution
-            await asyncio.sleep(1)  # Simulate work
+            # Load agent from registry
+            agent = agent_registry.get_agent(task.agent_role)
 
+            # Prepare agent input
+            agent_input = AgentInput(
+                workspace_context=execution.workspace_context,
+                previous_deliverables=execution.workspace_context.deliverables,
+                metadata=task.inputs,
+            )
+
+            # Execute agent
+            output = await agent.execute(agent_input)
+
+            # Update workspace with deliverables and quality gates
+            for deliverable in output.deliverables:
+                execution.workspace_context.add_deliverable(deliverable)
+
+            for gate in output.quality_gates:
+                execution.workspace_context.add_quality_gate(gate)
+
+            # Update task
             task.status = AgentStatus.COMPLETED
             task.completed_at = datetime.now()
+            task.outputs = output.metadata
 
             duration = (task.completed_at - task.started_at).total_seconds()
             console.print(f"  [green]✓[/green] {agent_name} completed ({duration:.1f}s)")
+
+            # Show deliverables
+            if output.deliverables:
+                for d in output.deliverables:
+                    console.print(f"    [dim]→ {d.name}: {d.path.name}[/dim]")
 
         except Exception as e:
             task.status = AgentStatus.FAILED
